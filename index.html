@@ -1,0 +1,1709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desert Island Survival Simulation</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <style>
+        /* ==================== FIREBASE SETUP BANNER ==================== */
+        #firebaseSetup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #dc3545;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            z-index: 10000;
+            font-weight: 600;
+        }
+        
+        #firebaseSetup a {
+            color: #fff;
+            text-decoration: underline;
+        }
+        
+        /* Copy existing styles from previous version */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .island-header {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 48px;
+            line-height: 1;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        h2 {
+            color: #34495e;
+            margin: 25px 0 15px 0;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .round-indicator {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .selection-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .selection-item {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .selection-item:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .selection-item.selected {
+            background: #667eea;
+            border-color: #5568d3;
+            color: white;
+        }
+
+        .selection-item .item-icon {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
+        .selection-item .item-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .selection-item .item-desc {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        .selection-count {
+            background: #ffc107;
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+        }
+
+        .btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .event-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 6px;
+        }
+
+        .event-box.danger {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+
+        .event-box.success {
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+
+        .event-box.info {
+            background: #d1ecf1;
+            border-left-color: #17a2b8;
+        }
+
+        .event-title {
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #856404;
+        }
+
+        .event-box.danger .event-title {
+            color: #721c24;
+        }
+
+        .event-box.success .event-title {
+            color: #155724;
+        }
+
+        .event-box.info .event-title {
+            color: #0c5460;
+        }
+
+        .status-display {
+            margin: 20px 0;
+        }
+
+        .status-item {
+            margin-bottom: 15px;
+        }
+
+        .status-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status-bar {
+            width: 100%;
+            height: 24px;
+            background: #e9ecef;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .status-bar-fill {
+            height: 100%;
+            transition: width 0.5s ease, background 0.3s;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            padding-left: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .status-health { background: #28a745; }
+        .status-morale { background: #17a2b8; }
+        .status-food { background: #ffc107; }
+        .status-shelter { background: #fd7e14; }
+        .status-rescue { background: #dc3545; }
+
+        .strategy-item {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .strategy-item:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .strategy-item.selected {
+            background: #667eea;
+            border-color: #5568d3;
+            color: white;
+        }
+
+        .strategy-item .strategy-name {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .strategy-item .strategy-desc {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .teams-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .team-card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .team-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .team-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .team-status {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .team-status.waiting {
+            background: #ffc107;
+            color: #856404;
+        }
+
+        .team-status.playing {
+            background: #28a745;
+            color: white;
+        }
+
+        .team-status.complete {
+            background: #6c757d;
+            color: white;
+        }
+
+        .team-choices {
+            font-size: 12px;
+            color: #6c757d;
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+
+        .outcome-summary {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .outcome-title {
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .selection-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mb-2 {
+            margin-bottom: 20px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Firebase Setup Warning -->
+    <div id="firebaseSetup" class="hidden">
+        ⚠️ Firebase not configured! Please follow setup instructions in the code. <a href="#" onclick="alert('Open the HTML file in a text editor and follow the FIREBASE SETUP instructions at the top of the JavaScript section.'); return false;">View Instructions</a>
+    </div>
+
+    <!-- Password Screen -->
+    <div id="passwordScreen" class="container" style="max-width: 400px;">
+        <div class="island-header">🏝️</div>
+        <h1 class="text-center">Access Required</h1>
+        <p class="subtitle text-center">Enter the workshop password to continue</p>
+        
+        <input type="password" id="passwordInput" placeholder="Enter password" 
+               style="width: 100%; padding: 15px; border: 2px solid #dee2e6; border-radius: 8px; font-size: 16px; margin-bottom: 10px;">
+        
+        <button class="btn" onclick="checkPassword()">Access Game</button>
+        
+        <p id="passwordError" style="color: #dc3545; margin-top: 10px; font-size: 14px; text-align: center; display: none;">
+            Incorrect password. Please try again.
+        </p>
+    </div>
+
+    <!-- Team Page -->
+    <div id="teamPage" class="container hidden">
+        <div class="island-header">🏝️🌊🌴</div>
+        <h1>Desert Island Survival</h1>
+        <p class="subtitle">Leadership Workshop Simulation</p>
+
+        <!-- Setup Screen -->
+        <div id="setupScreen">
+            <h2>Team Setup</h2>
+            <input type="text" id="teamNameInput" placeholder="Enter your team name" 
+                   style="width: 100%; padding: 12px; border: 2px solid #dee2e6; border-radius: 8px; font-size: 16px; margin-bottom: 10px;">
+            <button class="btn" onclick="startGame()">Join Lobby</button>
+            <button class="btn btn-secondary" onclick="showDashboard()">Open Facilitator Dashboard</button>
+        </div>
+
+        <!-- Lobby Screen -->
+        <div id="lobbyScreen" class="hidden">
+            <h2>⏳ Waiting for Facilitator</h2>
+            <div class="event-box info">
+                <div class="event-title">Team Ready</div>
+                <p>Your team is in the lobby. Waiting for the facilitator to start the game...</p>
+                <p style="margin-top: 15px; font-size: 13px;">All teams will begin simultaneously when the facilitator clicks "Start All Teams".</p>
+            </div>
+            <div style="text-align: center; margin-top: 30px;">
+                <div style="font-size: 48px; animation: pulse 2s infinite;">⏳</div>
+            </div>
+        </div>
+
+        <!-- Role Selection -->
+        <div id="roleSelection" class="hidden">
+            <h2><span class="round-indicator">Round 1</span> Select Your Team Roles</h2>
+            <div class="selection-count">Selected: <span id="roleCount">0</span> / 4</div>
+            <div class="selection-grid" id="roleGrid"></div>
+            <button class="btn" onclick="completeRoleSelection()" id="roleBtn" disabled>Confirm Roles</button>
+        </div>
+
+        <!-- Resource Selection -->
+        <div id="resourceSelection" class="hidden">
+            <h2><span class="round-indicator">Round 1</span> Select Your Resources</h2>
+            <div class="selection-count">Selected: <span id="resourceCount">0</span> / 4</div>
+            <div class="selection-grid" id="resourceGrid"></div>
+            <button class="btn" onclick="completeResourceSelection()" id="resourceBtn" disabled>Confirm Resources</button>
+        </div>
+
+        <!-- Round 1 Event -->
+        <div id="eventScreen" class="hidden">
+            <h2><span class="round-indicator">Round 1</span> Survival Event</h2>
+            <div id="eventContent" class="event-box danger"></div>
+            <div class="status-display" id="round1Status"></div>
+            <button class="btn" onclick="showRound(2)">Continue to Round 2</button>
+        </div>
+
+        <!-- Round 2 Strategy -->
+        <div id="round2Screen" class="hidden">
+            <h2><span class="round-indicator">Round 2</span> Strategic Decision</h2>
+            <p class="subtitle">Choose your team's strategic focus for this round.</p>
+            <div id="round2StrategyGrid"></div>
+            <button class="btn" onclick="completeRound(2)" id="round2Btn" disabled>Confirm Strategy</button>
+        </div>
+
+        <!-- Round 2 Outcome -->
+        <div id="round2Outcome" class="hidden">
+            <h2><span class="round-indicator">Round 2</span> Outcome</h2>
+            <div id="round2Content" class="event-box"></div>
+            <div class="status-display" id="round2Status"></div>
+            <button class="btn" onclick="showRound(3)">Continue to Round 3</button>
+        </div>
+
+        <!-- Round 3 Strategy -->
+        <div id="round3Screen" class="hidden">
+            <h2><span class="round-indicator">Round 3</span> Strategic Decision</h2>
+            <p class="subtitle">Another critical decision point. Choose your approach.</p>
+            <div id="round3StrategyGrid"></div>
+            <button class="btn" onclick="completeRound(3)" id="round3Btn" disabled>Confirm Strategy</button>
+        </div>
+
+        <!-- Round 3 Outcome -->
+        <div id="round3Outcome" class="hidden">
+            <h2><span class="round-indicator">Round 3</span> Outcome</h2>
+            <div id="round3Content" class="event-box"></div>
+            <div class="status-display" id="round3Status"></div>
+            <button class="btn" onclick="showRound(4)">Continue to Round 4</button>
+        </div>
+
+        <!-- Round 4 Strategy -->
+        <div id="round4Screen" class="hidden">
+            <h2><span class="round-indicator">Round 4</span> Final Strategic Decision</h2>
+            <p class="subtitle">This is your last major decision. Make it count.</p>
+            <div id="round4StrategyGrid"></div>
+            <button class="btn" onclick="completeRound(4)" id="round4Btn" disabled>Confirm Strategy</button>
+        </div>
+
+        <!-- Round 4 Outcome -->
+        <div id="round4Outcome" class="hidden">
+            <h2><span class="round-indicator">Round 4</span> Final Outcome</h2>
+            <div id="round4Content" class="event-box"></div>
+            <div class="status-display" id="round4Status"></div>
+            <button class="btn" onclick="showFinalResults()">View Final Results</button>
+        </div>
+
+        <!-- Final Results -->
+        <div id="resultsScreen" class="hidden">
+            <div class="island-header">🏝️</div>
+            <h2>Final Results</h2>
+            <div id="resultsContent"></div>
+            <div id="resultsStatus" class="status-display"></div>
+            <button class="btn btn-secondary" onclick="resetGame()">Start New Game</button>
+        </div>
+    </div>
+
+    <!-- Facilitator Dashboard -->
+    <div id="dashboardPage" class="container dashboard hidden">
+        <div class="island-header">🎯📊</div>
+        <h1 class="text-center">Facilitator Dashboard</h1>
+        <p class="subtitle text-center">Real-time monitoring of all team simulations</p>
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+            <button class="btn btn-secondary" onclick="hideDashboard()">Back to Team Input</button>
+            <button class="btn" onclick="startAllTeams()" id="startAllBtn" style="background: #28a745;">🚀 Start All Teams</button>
+            <button class="btn" onclick="updateDashboard()" style="background: #17a2b8;">🔄 Refresh Dashboard</button>
+            <button class="btn btn-secondary" onclick="clearAllData()" style="background: #dc3545; margin-left: auto;">Clear All Data</button>
+        </div>
+        
+        <div id="sessionStatus" style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: 600;">
+            ⏸️ Game Not Started - Teams in Lobby: <span id="lobbyCount">0</span>
+        </div>
+        
+        <div id="lastUpdated" style="background: #e9ecef; padding: 10px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-size: 13px; color: #6c757d;">
+            Last updated: <span id="updateTime">Never</span>
+        </div>
+        
+        <div id="teamsDisplay" class="teams-grid"></div>
+    </div>
+
+    <script>
+        // ==================== FIREBASE SETUP ====================
+        /*
+         * SETUP INSTRUCTIONS:
+         * 
+         * 1. Go to https://console.firebase.google.com/
+         * 2. Click "Add Project" or use existing project
+         * 3. Name it (e.g., "desert-island-game")
+         * 4. Click through setup (disable Google Analytics if you want)
+         * 5. Click the web icon (</>) to add a web app
+         * 6. Name your app and click "Register app"
+         * 7. Copy the firebaseConfig object shown
+         * 8. Paste it below, replacing the placeholder config
+         * 9. In Firebase Console, go to "Realtime Database" in left menu
+         * 10. Click "Create Database"
+         * 11. Choose "Start in test mode" for now (or set custom rules)
+         * 12. Click "Enable"
+         * 13. Save this file - done!
+         */
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyASwXHJWweDbUsaqHsInqWGs4hwlIPAy5s",
+  authDomain: "desert-island-game.firebaseapp.com",
+  databaseURL: "https://desert-island-game-default-rtdb.firebaseio.com",
+  projectId: "desert-island-game",
+  storageBucket: "desert-island-game.firebasestorage.app",
+  messagingSenderId: "214525354089",
+  appId: "1:214525354089:web:577b27365698303b1e42f8"
+        };
+        
+        // Check if Firebase is configured
+        let firebaseApp;
+        let database;
+        let isFirebaseConfigured = false;
+        
+        try {
+            if (firebaseConfig.apiKey !== "YOUR_API_KEY_HERE") {
+                firebaseApp = firebase.initializeApp(firebaseConfig);
+                database = firebase.database();
+                isFirebaseConfigured = true;
+                console.log('✅ Firebase initialized successfully');
+            } else {
+                document.getElementById('firebaseSetup').classList.remove('hidden');
+                console.error('❌ Firebase not configured. Please update firebaseConfig.');
+            }
+        } catch (error) {
+            document.getElementById('firebaseSetup').classList.remove('hidden');
+            console.error('❌ Firebase initialization error:', error);
+        }
+        
+        // ==================== PASSWORD PROTECTION ====================
+        
+        const WORKSHOP_PASSWORD = "PFG";
+        
+        function checkPassword() {
+            const input = document.getElementById('passwordInput').value;
+            
+            if (input === WORKSHOP_PASSWORD) {
+                sessionStorage.setItem('desertIslandAuth', 'true');
+                document.getElementById('passwordScreen').classList.add('hidden');
+                document.getElementById('teamPage').classList.remove('hidden');
+            } else {
+                document.getElementById('passwordError').style.display = 'block';
+                document.getElementById('passwordInput').value = '';
+                document.getElementById('passwordInput').focus();
+            }
+        }
+        
+        window.addEventListener('DOMContentLoaded', function() {
+            const isAuthenticated = sessionStorage.getItem('desertIslandAuth') === 'true';
+            
+            if (isAuthenticated) {
+                document.getElementById('passwordScreen').classList.add('hidden');
+                document.getElementById('teamPage').classList.remove('hidden');
+            } else {
+                document.getElementById('passwordInput').focus();
+            }
+            
+            document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    checkPassword();
+                }
+            });
+        });
+        
+        // ==================== GAME DATA STRUCTURES ====================
+        
+        const ROLES = [
+            { id: 'medic', name: 'Medic', icon: '⚕️', desc: 'Healthcare expertise', mitigates: ['injury', 'heatwave', 'aggressive_animals', 'medical_crisis'], bonus: { health: 8 } },
+            { id: 'engineer', name: 'Engineer', icon: '🔧', desc: 'Technical skills', mitigates: ['storm', 'severe_weather'], bonus: { shelter: 12 } },
+            { id: 'strategist', name: 'Strategist', icon: '🎯', desc: 'Decision analysis', mitigates: ['internal_conflict'], bonus: { rescue: 5, morale: 5 } },
+            { id: 'builder', name: 'Builder', icon: '🔨', desc: 'Construction skills', mitigates: ['storm', 'heatwave', 'severe_weather'], bonus: { shelter: 12 } },
+            { id: 'forager', name: 'Forager', icon: '🌿', desc: 'Food gathering', mitigates: ['food_contamination', 'environmental_degradation'], bonus: { food: 12 } },
+            { id: 'navigator', name: 'Navigator', icon: '🧭', desc: 'Orientation expert', mitigates: ['passing_aircraft'], bonus: { rescue: 8 } },
+            { id: 'communicator', name: 'Communicator', icon: '📡', desc: 'Team coordination', mitigates: ['internal_conflict', 'radio_signal'], bonus: { morale: 12 } },
+            { id: 'celebrity', name: 'Celebrity', icon: '⭐', desc: 'High visibility', mitigates: ['passing_aircraft'], bonus: { morale: 8, rescue: 5 } }
+        ];
+
+        const RESOURCES = [
+            { id: 'water_purifier', name: 'Water Purifier', icon: '💧', desc: 'Clean water', mitigates: ['food_contamination', 'heatwave', 'injury', 'medical_crisis'], bonus: { health: 8 } },
+            { id: 'rations', name: 'Emergency Rations', icon: '🥫', desc: 'Food reserves', mitigates: ['food_contamination'], bonus: { food: 15 } },
+            { id: 'handbook', name: 'Boy Scout Handbook', icon: '📖', desc: 'Survival guide', mitigates: ['storm', 'aggressive_animals', 'environmental_degradation', 'severe_weather'], bonus: { shelter: 4, food: 4, health: 4 } },
+            { id: 'rope', name: 'Rope', icon: '🪢', desc: 'Versatile tool', mitigates: ['storm', 'severe_weather'], bonus: { shelter: 8 } },
+            { id: 'tarp', name: 'Tarp', icon: '🏕️', desc: 'Weather protection', mitigates: ['storm', 'heatwave', 'severe_weather'], bonus: { shelter: 12 } },
+            { id: 'multitool', name: 'Multitool', icon: '🔪', desc: 'Universal utility', mitigates: [], bonus: { health: 4, shelter: 4, food: 4 } },
+            { id: 'seeds', name: 'Seeds', icon: '🌱', desc: 'Agriculture', mitigates: ['environmental_degradation'], bonus: { food: 8 } },
+            { id: 'matches', name: 'Matches', icon: '🔥', desc: 'Fire starting', mitigates: ['heatwave', 'aggressive_animals'], bonus: { morale: 8, health: 4 } }
+        ];
+
+        const EVENTS = [
+            { id: 'storm', name: '⛈️ Severe Storm', desc: 'A violent storm strikes the island, threatening your shelter and supplies.', impact: { shelter: -30, health: -20, morale: -15, food: -10 } },
+            { id: 'injury', name: '🩹 Team Member Injury', desc: 'A team member suffers a serious injury requiring immediate attention.', impact: { health: -35, morale: -20, food: -15, shelter: -10 } },
+            { id: 'food_contamination', name: '🦠 Food Contamination', desc: 'Your food supply shows signs of contamination and spoilage.', impact: { food: -40, health: -25, morale: -20 } },
+            { id: 'heatwave', name: '🌡️ Extreme Heatwave', desc: 'Oppressive heat threatens dehydration and exhaustion.', impact: { health: -30, morale: -30, food: -20, shelter: -10 } },
+            { id: 'aggressive_animals', name: '🐗 Aggressive Animals', desc: 'Wild animals threaten your camp and food supplies.', impact: { health: -25, food: -25, shelter: -20, morale: -15 } }
+        ];
+
+        const STRATEGIES = [
+            { id: 'stabilize', name: '🛡️ Stabilize Survival', desc: 'Focus on maintaining current status and minimizing risk', effect: { health: 12, food: 10, shelter: 12, morale: 8, rescue: -20 } },
+            { id: 'rescue', name: '🚁 Pursue Rescue', desc: 'Prioritize signaling and rescue attempts', effect: { rescue: 25, food: -20, shelter: -15, health: -10, morale: -5 } },
+            { id: 'sustainability', name: '🌱 Long-term Sustainability', desc: 'Build infrastructure for extended survival', effect: { food: 18, shelter: 12, health: 8, rescue: -25, morale: -15 } }
+        ];
+
+        const SCENARIOS = [
+            { id: 'passing_aircraft', name: '✈️ Passing Aircraft Spotted', desc: 'An aircraft is spotted in the distance. This is your chance for rescue!', successCondition: (team) => team.status.rescue > 70 && (team.roles.includes('navigator') || team.roles.includes('celebrity')), successEffect: { rescue: 30, morale: 15 }, failureEffect: { morale: -20, health: -10 }, successMsg: 'Your team successfully signals the aircraft! Rescue is imminent.', failureMsg: 'The aircraft passes without noticing. Team is demoralized and exhausted from the failed attempt.' },
+            { id: 'radio_signal', name: '📻 Radio Signal Window', desc: 'A brief radio transmission window opens. Can you establish contact?', successCondition: (team) => team.roles.includes('communicator') && team.status.rescue > 60, successEffect: { rescue: 25, morale: 10 }, failureEffect: { rescue: -15, morale: -10, health: -5 }, successMsg: 'Contact established! Your coordinates have been transmitted.', failureMsg: 'Unable to establish clear communication. Critical energy and resources wasted.' },
+            { id: 'internal_conflict', name: '⚡ Internal Team Conflict', desc: 'Tensions rise within the team. Leadership is needed to maintain cohesion.', successCondition: (team) => (team.roles.includes('communicator') || team.roles.includes('strategist')) && team.status.morale > 65, successEffect: { morale: 12, health: 5 }, failureEffect: { morale: -25, health: -15, food: -15, shelter: -15 }, successMsg: 'Conflict resolved through effective communication and leadership.', failureMsg: 'Conflict escalates dramatically. Team effectiveness severely compromised across all areas.' },
+            { id: 'environmental_degradation', name: '🌍 Environmental Degradation', desc: 'Local resources are depleting faster than expected. Adaptation required.', successCondition: (team) => team.status.food > 75 && team.roles.includes('forager') && (team.resources.includes('seeds') || team.resources.includes('handbook')), successEffect: { food: 12, shelter: 8 }, failureEffect: { food: -25, health: -20, morale: -15, shelter: -10 }, successMsg: 'Your team successfully adapts to changing conditions.', failureMsg: 'Resource depletion accelerates dramatically. Survival fundamentals are threatened.' },
+            { id: 'severe_weather', name: '🌀 Severe Weather Event', desc: 'Another major weather system threatens the island. Your shelter is at risk.', successCondition: (team) => team.status.shelter > 70 && (team.roles.includes('builder') || team.roles.includes('engineer')), successEffect: { shelter: 10, health: 5 }, failureEffect: { shelter: -30, health: -20, morale: -15, food: -10 }, successMsg: 'Your reinforced shelter withstands the storm.', failureMsg: 'Shelter is severely damaged. Team exposed to elements with supplies compromised.' },
+            { id: 'medical_crisis', name: '🚑 Medical Crisis', desc: 'Multiple team members fall ill. Medical expertise is critical.', successCondition: (team) => team.roles.includes('medic') && team.status.health > 65 && team.resources.includes('water_purifier'), successEffect: { health: 15, morale: 5 }, failureEffect: { health: -30, morale: -20, food: -15 }, successMsg: 'Medical intervention prevents the crisis from escalating.', failureMsg: 'Illness spreads. Team capacity severely diminished.' }
+        ];
+
+        // Current team state
+        let currentTeam = {
+            name: '',
+            roles: [],
+            resources: [],
+            strategies: [],
+            event: null,
+            scenarios: [],
+            outcomes: [],
+            status: { health: 80, morale: 70, food: 60, shelter: 50, rescue: 30 },
+            currentRound: 0,
+            gameStarted: false
+        };
+
+        let allTeams = [];
+        let gameSession = { started: false, timestamp: null };
+        
+        // Firebase listeners
+        let teamsListener = null;
+        let sessionListener = null;
+        
+        // ==================== FIREBASE FUNCTIONS ====================
+        
+        /**
+         * Save team to Firebase
+         */
+        function saveTeamToFirebase() {
+            if (!isFirebaseConfigured) {
+                console.log('❌ Firebase not configured, cannot save');
+                showSaveStatus('❌ Not connected', 'error');
+                return;
+            }
+            
+            try {
+                console.log('💾 Saving team to Firebase:', currentTeam.name, 'Round:', currentTeam.currentRound);
+                showSaveStatus('💾 Saving...', 'info');
+                
+                const teamRef = database.ref('teams/' + encodeURIComponent(currentTeam.name));
+                teamRef.set(currentTeam).then(() => {
+                    console.log('✅ Team saved successfully');
+                    showSaveStatus('✅ Saved', 'success');
+                }).catch((error) => {
+                    console.error('❌ Firebase save error:', error);
+                    showSaveStatus('❌ Save failed', 'error');
+                    // Don't use alert - it blocks the UI. Visual indicator is enough.
+                });
+            } catch (error) {
+                console.error('❌ Error saving team to Firebase:', error);
+                showSaveStatus('❌ Error', 'error');
+                // Don't use alert - it blocks the UI. Visual indicator is enough.
+            }
+        }
+        
+        /**
+         * Show save status indicator
+         */
+        function showSaveStatus(message, type) {
+            // Safety check - don't run if DOM not ready
+            if (!document.body) {
+                console.log('Save status:', message);
+                return;
+            }
+            
+            let indicator = document.getElementById('saveIndicator');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'saveIndicator';
+                indicator.style.cssText = 'position: fixed; top: 10px; right: 10px; padding: 10px 15px; border-radius: 8px; font-size: 14px; font-weight: 600; z-index: 9999; transition: opacity 0.3s;';
+                document.body.appendChild(indicator);
+            }
+            
+            indicator.textContent = message;
+            
+            if (type === 'success') {
+                indicator.style.background = '#28a745';
+                indicator.style.color = 'white';
+            } else if (type === 'error') {
+                indicator.style.background = '#dc3545';
+                indicator.style.color = 'white';
+            } else {
+                indicator.style.background = '#ffc107';
+                indicator.style.color = '#856404';
+            }
+            
+            indicator.style.opacity = '1';
+            
+            // Fade out after 2 seconds
+            setTimeout(() => {
+                indicator.style.opacity = '0';
+            }, 2000);
+        }
+        
+        /**
+         * Load all teams from Firebase
+         */
+        function loadTeamsFromFirebase() {
+            if (!isFirebaseConfigured) return;
+            
+            if (teamsListener) {
+                database.ref('teams').off('value', teamsListener);
+            }
+            
+            console.log('👂 Setting up Firebase listener for teams...');
+            teamsListener = database.ref('teams').on('value', (snapshot) => {
+                const teamsData = snapshot.val();
+                allTeams = teamsData ? Object.values(teamsData) : [];
+                console.log('🔥 Firebase data received! Teams:', allTeams.length);
+                allTeams.forEach(t => console.log(`   ${t.name}: Round ${t.currentRound}`));
+                
+                if (!document.getElementById('dashboardPage').classList.contains('hidden')) {
+                    console.log('📺 Dashboard is visible, updating...');
+                    updateDashboard();
+                } else {
+                    console.log('📺 Dashboard is hidden, skipping update');
+                }
+            });
+        }
+        
+        /**
+         * Load game session from Firebase
+         */
+        function loadSessionFromFirebase() {
+            if (!isFirebaseConfigured) return;
+            
+            if (sessionListener) {
+                database.ref('session').off('value', sessionListener);
+            }
+            
+            console.log('👂 Setting up session listener...');
+            sessionListener = database.ref('session').on('value', (snapshot) => {
+                const sessionData = snapshot.val();
+                gameSession = sessionData || { started: false, timestamp: null };
+                console.log('🎮 Session update received:', gameSession.started ? 'STARTED' : 'NOT STARTED');
+                console.log('   Current team:', currentTeam.name);
+                console.log('   Current round:', currentTeam.currentRound);
+                console.log('   Game started flag:', currentTeam.gameStarted);
+                
+                // Check if game should start for this team
+                if (gameSession.started && !currentTeam.gameStarted && currentTeam.currentRound === 0) {
+                    console.log('✅ Starting game for team:', currentTeam.name);
+                    currentTeam.gameStarted = true;
+                    currentTeam.currentRound = 1;
+                    
+                    // Hide lobby, show role selection
+                    document.getElementById('lobbyScreen').classList.add('hidden');
+                    document.getElementById('roleSelection').classList.remove('hidden');
+                    initRoleGrid();
+                } else {
+                    console.log('⏸️ Not starting game. Conditions:', {
+                        sessionStarted: gameSession.started,
+                        teamNotStarted: !currentTeam.gameStarted,
+                        inLobby: currentTeam.currentRound === 0
+                    });
+                }
+                
+                if (!document.getElementById('dashboardPage').classList.contains('hidden')) {
+                    updateDashboard();
+                }
+            });
+        }
+        
+        /**
+         * Start all teams (facilitator only)
+         */
+        function startAllTeams() {
+            console.log('🚀 Start All Teams button clicked');
+            if (!isFirebaseConfigured) {
+                alert('Firebase not configured!');
+                return;
+            }
+            
+            const lobbyTeams = allTeams.filter(t => t.currentRound === 0);
+            console.log('📋 Teams in lobby:', lobbyTeams.length);
+            lobbyTeams.forEach(t => console.log(`   - ${t.name}`));
+            
+            if (lobbyTeams.length === 0) {
+                alert('No teams in lobby to start.');
+                return;
+            }
+            
+            if (confirm(`Start the game for ${lobbyTeams.length} team(s) in the lobby?`)) {
+                console.log('💾 Setting session to started in Firebase...');
+                database.ref('session').set({
+                    started: true,
+                    timestamp: new Date().toISOString()
+                }).then(() => {
+                    console.log('✅ Session saved to Firebase successfully');
+                    alert('Game started! All teams can now begin.');
+                }).catch(error => {
+                    console.error('❌ Error saving session:', error);
+                    alert('Error starting game. Check console.');
+                });
+            } else {
+                console.log('❌ Start game cancelled by user');
+            }
+        }
+        
+        /**
+         * Clear all data (facilitator only)
+         */
+        function clearAllData() {
+            if (!isFirebaseConfigured) {
+                alert('Firebase not configured!');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to clear all team data? This cannot be undone.')) {
+                database.ref('teams').remove();
+                database.ref('session').remove();
+                alert('All team data has been cleared.');
+            }
+        }
+        
+        // ==================== GAME FLOW FUNCTIONS ====================
+        
+        function startGame() {
+            const teamName = document.getElementById('teamNameInput').value.trim();
+            if (!teamName) {
+                alert('Please enter a team name');
+                return;
+            }
+            
+            if (!isFirebaseConfigured) {
+                alert('Firebase not configured! Please check setup instructions.');
+                return;
+            }
+            
+            console.log('🏝️ Team joining:', teamName);
+            currentTeam = {
+                name: teamName,
+                roles: [],
+                resources: [],
+                strategies: [],
+                event: null,
+                scenarios: [],
+                outcomes: [],
+                status: { health: 80, morale: 70, food: 60, shelter: 50, rescue: 30 },
+                currentRound: 0,
+                gameStarted: false
+            };
+            console.log('   Round:', currentTeam.currentRound);
+            console.log('   Started:', currentTeam.gameStarted);
+            
+            // Save to Firebase
+            console.log('💾 Saving team to Firebase...');
+            saveTeamToFirebase();
+            
+            // Load Firebase listeners
+            console.log('👂 Setting up Firebase listeners...');
+            loadTeamsFromFirebase();
+            loadSessionFromFirebase();
+            
+            console.log('⏳ Showing lobby screen...');
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('lobbyScreen').classList.remove('hidden');
+        }
+        
+        function showDashboard() {
+            if (!isFirebaseConfigured) {
+                alert('Firebase not configured! Please check setup instructions.');
+                return;
+            }
+            
+            document.getElementById('teamPage').classList.add('hidden');
+            document.getElementById('dashboardPage').classList.remove('hidden');
+            
+            loadTeamsFromFirebase();
+            loadSessionFromFirebase();
+            updateDashboard();
+        }
+        
+        function hideDashboard() {
+            document.getElementById('dashboardPage').classList.add('hidden');
+            document.getElementById('teamPage').classList.remove('hidden');
+        }
+        
+        function initRoleGrid() {
+            const grid = document.getElementById('roleGrid');
+            grid.innerHTML = '';
+            ROLES.forEach(role => {
+                const item = document.createElement('div');
+                item.className = 'selection-item';
+                item.dataset.id = role.id;
+                item.innerHTML = `
+                    <div class="item-icon">${role.icon}</div>
+                    <div class="item-name">${role.name}</div>
+                    <div class="item-desc">${role.desc}</div>
+                `;
+                item.onclick = () => toggleSelection('role', role.id, 4);
+                grid.appendChild(item);
+            });
+        }
+        
+        function initResourceGrid() {
+            const grid = document.getElementById('resourceGrid');
+            grid.innerHTML = '';
+            RESOURCES.forEach(resource => {
+                const item = document.createElement('div');
+                item.className = 'selection-item';
+                item.dataset.id = resource.id;
+                item.innerHTML = `
+                    <div class="item-icon">${resource.icon}</div>
+                    <div class="item-name">${resource.name}</div>
+                    <div class="item-desc">${resource.desc}</div>
+                `;
+                item.onclick = () => toggleSelection('resource', resource.id, 4);
+                grid.appendChild(item);
+            });
+        }
+        
+        function initStrategyGrid(round) {
+            const gridId = `round${round}StrategyGrid`;
+            const grid = document.getElementById(gridId);
+            grid.innerHTML = '';
+            
+            STRATEGIES.forEach(strategy => {
+                const item = document.createElement('div');
+                item.className = 'strategy-item';
+                item.dataset.id = strategy.id;
+                item.innerHTML = `
+                    <div class="strategy-name">${strategy.name}</div>
+                    <div class="strategy-desc">${strategy.desc}</div>
+                `;
+                item.onclick = () => selectStrategy(round, strategy.id);
+                grid.appendChild(item);
+            });
+        }
+        
+        function toggleSelection(type, id, maxCount) {
+            const array = type === 'role' ? currentTeam.roles : currentTeam.resources;
+            const index = array.indexOf(id);
+            
+            if (index > -1) {
+                array.splice(index, 1);
+            } else {
+                if (array.length >= maxCount) {
+                    alert(`You can only select ${maxCount} ${type}s`);
+                    return;
+                }
+                array.push(id);
+            }
+            
+            updateSelectionUI(type, maxCount);
+        }
+        
+        function updateSelectionUI(type, maxCount) {
+            const array = type === 'role' ? currentTeam.roles : currentTeam.resources;
+            const countId = type === 'role' ? 'roleCount' : 'resourceCount';
+            const btnId = type === 'role' ? 'roleBtn' : 'resourceBtn';
+            const gridId = type === 'role' ? 'roleGrid' : 'resourceGrid';
+            
+            document.getElementById(countId).textContent = array.length;
+            document.getElementById(btnId).disabled = array.length !== maxCount;
+            
+            const items = document.querySelectorAll(`#${gridId} .selection-item`);
+            items.forEach(item => {
+                if (array.includes(item.dataset.id)) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+        
+        function completeRoleSelection() {
+            if (currentTeam.roles.length !== 4) return;
+            
+            document.getElementById('roleSelection').classList.add('hidden');
+            document.getElementById('resourceSelection').classList.remove('hidden');
+            initResourceGrid();
+            saveTeamToFirebase();
+        }
+        
+        function completeResourceSelection() {
+            if (currentTeam.resources.length !== 4) return;
+            
+            applyBonuses();
+            currentTeam.event = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+            applyEventImpact();
+            
+            document.getElementById('resourceSelection').classList.add('hidden');
+            document.getElementById('eventScreen').classList.remove('hidden');
+            
+            displayEvent();
+            saveTeamToFirebase();
+        }
+        
+        function applyBonuses() {
+            currentTeam.roles.forEach(roleId => {
+                const role = ROLES.find(r => r.id === roleId);
+                if (role.bonus) {
+                    Object.keys(role.bonus).forEach(key => {
+                        currentTeam.status[key] = Math.min(100, currentTeam.status[key] + role.bonus[key]);
+                    });
+                }
+            });
+            
+            currentTeam.resources.forEach(resId => {
+                const resource = RESOURCES.find(r => r.id === resId);
+                if (resource.bonus) {
+                    Object.keys(resource.bonus).forEach(key => {
+                        currentTeam.status[key] = Math.min(100, currentTeam.status[key] + resource.bonus[key]);
+                    });
+                }
+            });
+        }
+        
+        function applyEventImpact() {
+            const event = currentTeam.event;
+            const mitigationFactor = calculateMitigation(event.id);
+            
+            Object.keys(event.impact).forEach(key => {
+                const baseImpact = event.impact[key];
+                const mitigatedImpact = Math.floor(baseImpact * (1 - mitigationFactor));
+                currentTeam.status[key] = Math.max(0, Math.min(100, currentTeam.status[key] + mitigatedImpact));
+            });
+        }
+        
+        function calculateMitigation(eventId) {
+            let mitigation = 0;
+            
+            currentTeam.roles.forEach(roleId => {
+                const role = ROLES.find(r => r.id === roleId);
+                if (role.mitigates.includes(eventId)) {
+                    mitigation += 0.25;
+                }
+            });
+            
+            currentTeam.resources.forEach(resId => {
+                const resource = RESOURCES.find(r => r.id === resId);
+                if (resource.mitigates.includes(eventId)) {
+                    mitigation += 0.20;
+                }
+            });
+            
+            return Math.min(0.5, mitigation);
+        }
+        
+        function displayEvent() {
+            const event = currentTeam.event;
+            const content = document.getElementById('eventContent');
+            content.innerHTML = `
+                <div class="event-title">${event.name}</div>
+                <p>${event.desc}</p>
+                <p style="margin-top: 10px; font-size: 13px;">Your roles and resources have helped mitigate some impacts, but challenges remain.</p>
+            `;
+            
+            displayStatus('round1Status');
+        }
+        
+        function showRound(round) {
+            console.log('🎮 Advancing to Round', round);
+            // Hide all screens
+            document.querySelectorAll('.container > div').forEach(div => div.classList.add('hidden'));
+            
+            currentTeam.currentRound = round;
+            console.log('📍 Current round set to:', currentTeam.currentRound);
+            
+            if (round >= 2 && round <= 4) {
+                document.getElementById(`round${round}Screen`).classList.remove('hidden');
+                initStrategyGrid(round);
+            }
+            
+            saveTeamToFirebase();
+        }
+        
+        function selectStrategy(round, strategyId) {
+            const gridId = `round${round}StrategyGrid`;
+            const items = document.querySelectorAll(`#${gridId} .strategy-item`);
+            
+            items.forEach(item => {
+                if (item.dataset.id === strategyId) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+            
+            currentTeam.strategies[round - 2] = strategyId;
+            document.getElementById(`round${round}Btn`).disabled = false;
+        }
+        
+        function completeRound(round) {
+            const strategyId = currentTeam.strategies[round - 2];
+            if (!strategyId) return;
+            
+            const strategy = STRATEGIES.find(s => s.id === strategyId);
+            Object.keys(strategy.effect).forEach(key => {
+                currentTeam.status[key] = Math.max(0, Math.min(100, currentTeam.status[key] + strategy.effect[key]));
+            });
+            
+            let availableScenarios = SCENARIOS;
+            if (round === 2) {
+                availableScenarios = SCENARIOS.filter(s => 
+                    s.id !== 'passing_aircraft' && s.id !== 'radio_signal'
+                );
+            }
+            
+            const scenario = availableScenarios[Math.floor(Math.random() * availableScenarios.length)];
+            currentTeam.scenarios[round - 2] = scenario;
+            
+            const success = scenario.successCondition(currentTeam);
+            currentTeam.outcomes[round - 2] = success ? 'success' : 'failure';
+            
+            const effect = success ? scenario.successEffect : scenario.failureEffect;
+            Object.keys(effect).forEach(key => {
+                currentTeam.status[key] = Math.max(0, Math.min(100, currentTeam.status[key] + effect[key]));
+            });
+            
+            document.getElementById(`round${round}Screen`).classList.add('hidden');
+            document.getElementById(`round${round}Outcome`).classList.remove('hidden');
+            
+            displayScenario(round);
+            saveTeamToFirebase();
+        }
+        
+        function displayScenario(round) {
+            const scenario = currentTeam.scenarios[round - 2];
+            const success = currentTeam.outcomes[round - 2] === 'success';
+            const content = document.getElementById(`round${round}Content`);
+            
+            content.className = success ? 'event-box success' : 'event-box danger';
+            content.innerHTML = `
+                <div class="event-title">${scenario.name}</div>
+                <p>${scenario.desc}</p>
+                <p style="margin-top: 15px; font-weight: 600;">${success ? scenario.successMsg : scenario.failureMsg}</p>
+            `;
+            
+            displayStatus(`round${round}Status`);
+        }
+        
+        function displayStatus(containerId) {
+            const container = document.getElementById(containerId);
+            const statusLabels = {
+                health: '❤️ Health',
+                morale: '😊 Morale',
+                food: '🍎 Food',
+                shelter: '🏠 Shelter',
+                rescue: '🚁 Rescue'
+            };
+            
+            let html = '';
+            Object.keys(currentTeam.status).forEach(key => {
+                const value = currentTeam.status[key];
+                html += `
+                    <div class="status-item">
+                        <div class="status-label">
+                            <span>${statusLabels[key]}</span>
+                            <span>${value}%</span>
+                        </div>
+                        <div class="status-bar">
+                            <div class="status-bar-fill status-${key}" style="width: ${value}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function showFinalResults() {
+            document.getElementById('round4Outcome').classList.add('hidden');
+            document.getElementById('resultsScreen').classList.remove('hidden');
+            
+            currentTeam.currentRound = 5;
+            
+            const explanation = generateOutcomeExplanation();
+            const content = document.getElementById('resultsContent');
+            
+            content.innerHTML = explanation;
+            
+            displayStatus('resultsStatus');
+            
+            saveTeamToFirebase();
+        }
+        
+        function resetGame() {
+            currentTeam = {
+                name: '',
+                roles: [],
+                resources: [],
+                strategies: [],
+                event: null,
+                scenarios: [],
+                outcomes: [],
+                status: { health: 80, morale: 70, food: 60, shelter: 50, rescue: 30 },
+                currentRound: 0,
+                gameStarted: false
+            };
+            
+            document.getElementById('resultsScreen').classList.add('hidden');
+            document.getElementById('setupScreen').classList.remove('hidden');
+            document.getElementById('teamNameInput').value = '';
+        }
+        
+        // ==================== OUTCOME DETERMINATION ====================
+        
+        function determineOutcome(status) {
+            if (!status || typeof status !== 'object') {
+                return {
+                    category: '❓ INCOMPLETE DATA',
+                    message: 'Team data incomplete',
+                    emoji: '❓',
+                    score: 0,
+                    rank: 7
+                };
+            }
+            
+            const s = status;
+            const avgSurvival = (s.health + s.food + s.shelter) / 3;
+            
+            // Death checks first
+            if (s.health <= 15) {
+                return {
+                    category: '💀 TEAM PERISHED',
+                    message: 'Your team succumbed to illness and injury. The island claimed its victims.',
+                    emoji: '💀',
+                    score: 0,
+                    rank: 7
+                };
+            }
+            if (s.food <= 15) {
+                return {
+                    category: '🪦 TEAM STARVED',
+                    message: 'Without adequate food, your team slowly starved. A tragic end on a remote island.',
+                    emoji: '🪦',
+                    score: 5,
+                    rank: 6
+                };
+            }
+            
+            if (s.morale <= 20) {
+                return {
+                    category: '💔 TEAM FRACTURED',
+                    message: 'Internal conflict tore the team apart. Members went their separate ways on the island.',
+                    emoji: '💔',
+                    score: 10,
+                    rank: 5
+                };
+            }
+            
+            // Rescue outcomes
+            if (s.rescue >= 85 && avgSurvival >= 35) {
+                return {
+                    category: '🚁 SUCCESSFULLY RESCUED!',
+                    message: 'Your team was successfully evacuated! You\'re heading home.',
+                    emoji: '🚁',
+                    score: 100 + avgSurvival,
+                    rank: 1
+                };
+            }
+            if (s.rescue >= 70 && avgSurvival >= 35) {
+                return {
+                    category: '📡 RESCUE IMMINENT',
+                    message: 'Contact established with rescue teams. Evacuation expected within days.',
+                    emoji: '📡',
+                    score: 80 + avgSurvival,
+                    rank: 2
+                };
+            }
+            
+            // Survival outcomes
+            if (avgSurvival >= 60 && s.morale >= 50) {
+                return {
+                    category: '🏝️ ISLAND HOMESTEADERS',
+                    message: 'Your team has built a sustainable life on the island. Rescue hopes fade, but you\'re thriving.',
+                    emoji: '🏝️',
+                    score: 60 + avgSurvival + s.morale,
+                    rank: 3
+                };
+            }
+            if (avgSurvival >= 40) {
+                return {
+                    category: '⚠️ BARELY SURVIVING',
+                    message: 'Your team clings to survival. Each day is a struggle with uncertain prospects.',
+                    emoji: '⚠️',
+                    score: 30 + avgSurvival,
+                    rank: 4
+                };
+            }
+            
+            return {
+                category: '☠️ DESPERATE SITUATION',
+                message: 'Your team faces imminent collapse. Multiple critical failures threaten survival.',
+                emoji: '☠️',
+                score: 15,
+                rank: 6
+            };
+        }
+        
+        function determineWinners() {
+            try {
+                const completeTeams = allTeams.filter(t => t.currentRound === 5);
+                if (completeTeams.length === 0) return [];
+                
+                let highestScore = -1;
+                let winners = [];
+                
+                completeTeams.forEach(team => {
+                    if (team && team.status) {
+                        const outcome = determineOutcome(team.status);
+                        if (outcome.score > highestScore) {
+                            highestScore = outcome.score;
+                            winners = [team];
+                        } else if (outcome.score === highestScore) {
+                            winners.push(team);
+                        }
+                    }
+                });
+                
+                return winners;
+            } catch (error) {
+                console.error('Error determining winners:', error);
+                return [];
+            }
+        }
+        
+        function generateOutcomeExplanation() {
+            const s = currentTeam.status;
+            const outcome = determineOutcome(s);
+            
+            let explanation = `
+                <div style="background: ${outcome.rank <= 2 ? '#d4edda' : outcome.rank <= 4 ? '#fff3cd' : '#f8d7da'}; 
+                            border: 3px solid ${outcome.rank <= 2 ? '#28a745' : outcome.rank <= 4 ? '#ffc107' : '#dc3545'}; 
+                            padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 10px;">${outcome.emoji}</div>
+                    <div style="font-size: 24px; font-weight: 700; margin-bottom: 10px; color: #2c3e50;">
+                        ${outcome.category}
+                    </div>
+                    <div style="font-size: 16px; color: #495057;">
+                        ${outcome.message}
+                    </div>
+                </div>
+            `;
+            
+            explanation += '<p style="margin-top: 20px;"><strong>📊 Final Status Summary:</strong></p><p>';
+            
+            if (s.health <= 25) explanation += '❤️ <strong>Health: Critical</strong> - Team members are severely weakened. ';
+            else if (s.health <= 50) explanation += '❤️ <strong>Health: Poor</strong> - Injuries and illness taking their toll. ';
+            else if (s.health >= 70) explanation += '❤️ <strong>Health: Good</strong> - Team maintained physical wellbeing. ';
+            else explanation += '❤️ <strong>Health: Fair</strong> - Managing but strained. ';
+            
+            if (s.food <= 25) explanation += '🍎 <strong>Food: Starving</strong> - Rations nearly depleted. ';
+            else if (s.food <= 50) explanation += '🍎 <strong>Food: Scarce</strong> - Food security uncertain. ';
+            else if (s.food >= 70) explanation += '🍎 <strong>Food: Abundant</strong> - Sustainable food sources established. ';
+            else explanation += '🍎 <strong>Food: Adequate</strong> - Basic needs met. ';
+            
+            if (s.shelter <= 25) explanation += '🏠 <strong>Shelter: Failing</strong> - Exposed to elements. ';
+            else if (s.shelter <= 50) explanation += '🏠 <strong>Shelter: Basic</strong> - Minimal protection. ';
+            else if (s.shelter >= 70) explanation += '🏠 <strong>Shelter: Strong</strong> - Well-protected from weather. ';
+            else explanation += '🏠 <strong>Shelter: Functional</strong> - Adequate protection. ';
+            
+            if (s.morale <= 25) explanation += '😔 <strong>Morale: Collapsed</strong> - Team unity broken. ';
+            else if (s.morale <= 50) explanation += '😐 <strong>Morale: Low</strong> - Tensions high, cohesion strained. ';
+            else if (s.morale >= 70) explanation += '😊 <strong>Morale: High</strong> - Team spirit strong. ';
+            else explanation += '😐 <strong>Morale: Fair</strong> - Team holding together. ';
+            
+            if (s.rescue <= 25) explanation += '🚁 <strong>Rescue: Remote</strong> - No realistic prospect of rescue. ';
+            else if (s.rescue <= 50) explanation += '📡 <strong>Rescue: Uncertain</strong> - Limited communication established. ';
+            else if (s.rescue >= 80) explanation += '🚁 <strong>Rescue: Confirmed</strong> - Evacuation secured! ';
+            else explanation += '📡 <strong>Rescue: Possible</strong> - Rescue teams aware of location. ';
+            
+            explanation += '</p>';
+            
+            return explanation;
+        }
+        
+        // ==================== DASHBOARD ====================
+        
+        /**
+         * Update dashboard - FORCE RELOAD from Firebase
+         */
+        function updateDashboard() {
+            console.log('🔄 Updating dashboard - forcing Firebase reload...');
+            
+            // FORCE reload from Firebase every single time
+            if (!isFirebaseConfigured) {
+                console.log('⚠️ Firebase not configured');
+                return;
+            }
+            
+            // Load BOTH teams AND session in parallel
+            Promise.all([
+                database.ref('teams').once('value'),
+                database.ref('session').once('value')
+            ]).then(([teamsSnapshot, sessionSnapshot]) => {
+                const teamsData = teamsSnapshot.val();
+                allTeams = teamsData ? Object.values(teamsData) : [];
+                console.log('📥 Loaded', allTeams.length, 'teams from Firebase');
+                allTeams.forEach(t => console.log(`   ${t.name}: Round ${t.currentRound}`));
+                
+                const sessionData = sessionSnapshot.val();
+                gameSession = sessionData || { started: false, timestamp: null };
+                console.log('🎮 Game session:', gameSession.started ? 'STARTED' : 'NOT STARTED');
+                
+                renderDashboard();
+            }).catch(error => {
+                console.error('❌ Firebase load error:', error);
+            });
+        }
+        
+        /**
+         * Render the dashboard HTML
+         */
+        function renderDashboard() {
+            try {
+                const container = document.getElementById('teamsDisplay');
+                
+                const lobbyTeams = allTeams.filter(t => t.currentRound === 0);
+                const activeTeams = allTeams.filter(t => t.currentRound >= 1 && t.currentRound <= 4);
+                const completeTeams = allTeams.filter(t => t.currentRound === 5);
+                
+                console.log(`📊 Lobby: ${lobbyTeams.length}, Active: ${activeTeams.length}, Complete: ${completeTeams.length}`);
+                
+                const sessionStatus = document.getElementById('sessionStatus');
+                const startBtn = document.getElementById('startAllBtn');
+                const lobbyCountSpan = document.getElementById('lobbyCount');
+                
+                if (gameSession.started) {
+                    sessionStatus.style.background = '#d4edda';
+                    sessionStatus.innerHTML = `✅ Game Started - Active: ${activeTeams.length} | Complete: ${completeTeams.length}`;
+                    startBtn.disabled = true;
+                    startBtn.style.opacity = '0.5';
+                } else {
+                    sessionStatus.style.background = '#fff3cd';
+                    lobbyCountSpan.textContent = lobbyTeams.length;
+                    startBtn.disabled = false;
+                    startBtn.style.opacity = '1';
+                }
+                
+                if (allTeams.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #6c757d; margin-top: 40px;">No teams have joined yet.</p>';
+                    return;
+                }
+                
+                let html = '';
+                
+                const winners = determineWinners();
+                const winnerNames = winners.map(w => w.name);
+                
+                if (completeTeams.length >= 2 && winners.length > 0) {
+                    if (winners.length === 1) {
+                        const winner = winners[0];
+                        const winnerOutcome = determineOutcome(winner.status);
+                        html += `
+                            <div style="grid-column: 1 / -1; background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); 
+                                        border: 3px solid #f0c000; border-radius: 12px; padding: 30px; text-align: center; 
+                                        margin-bottom: 30px; box-shadow: 0 8px 20px rgba(255,215,0,0.3);">
+                                <div style="font-size: 60px; margin-bottom: 10px;">🏆</div>
+                                <div style="font-size: 32px; font-weight: 700; color: #2c3e50; margin-bottom: 10px;">
+                                    WINNING TEAM
+                                </div>
+                                <div style="font-size: 28px; font-weight: 600; color: #495057; margin-bottom: 15px;">
+                                    ${winner.name}
+                                </div>
+                                <div style="font-size: 20px; color: #6c757d;">
+                                    ${winnerOutcome.category}
+                                </div>
+                                <div style="font-size: 16px; color: #6c757d; margin-top: 10px;">
+                                    Score: ${Math.round(winnerOutcome.score)}
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div style="grid-column: 1 / -1; background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); 
+                                        border: 3px solid #f0c000; border-radius: 12px; padding: 30px; text-align: center; 
+                                        margin-bottom: 30px; box-shadow: 0 8px 20px rgba(255,215,0,0.3);">
+                                <div style="font-size: 60px; margin-bottom: 10px;">🏆🏆</div>
+                                <div style="font-size: 32px; font-weight: 700; color: #2c3e50; margin-bottom: 10px;">
+                                    TIE - ${winners.length} WINNING TEAMS!
+                                </div>
+                                <div style="font-size: 24px; font-weight: 600; color: #495057; margin-bottom: 15px;">
+                                    ${winners.map(w => w.name).join(' • ')}
+                                </div>
+                                <div style="font-size: 16px; color: #6c757d;">
+                                    Tied Score: ${Math.round(determineOutcome(winners[0].status).score)}
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                const sortedTeams = [...allTeams].sort((a, b) => {
+                    if (a.currentRound === 0 && b.currentRound !== 0) return -1;
+                    if (a.currentRound !== 0 && b.currentRound === 0) return 1;
+                    if (a.currentRound === 5 && b.currentRound !== 5) return 1;
+                    if (a.currentRound !== 5 && b.currentRound === 5) return -1;
+                    return a.currentRound - b.currentRound;
+                });
+                
+                sortedTeams.forEach(team => {
+                    const isWinner = winnerNames.includes(team.name) && team.currentRound === 5;
+                    html += generateTeamCard(team, isWinner);
+                });
+                
+                container.innerHTML = html;
+                
+                // Update timestamp
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString();
+                const updateTimeEl = document.getElementById('updateTime');
+                if (updateTimeEl) {
+                    updateTimeEl.textContent = timeStr;
+                }
+                
+                console.log('✅ Dashboard rendered at', timeStr);
+            } catch (error) {
+                console.error('❌ Dashboard render error:', error);
+                const container = document.getElementById('teamsDisplay');
+                container.innerHTML = '<p style="text-align: center; color: #dc3545; margin-top: 40px;">Error loading team data. Check console for details.</p>';
+            }
+        }
+        
+        function generateTeamCard(team, isWinner = false) {
+            if (!team || !team.status) {
+                return `
+                    <div class="team-card">
+                        <p style="color: #dc3545;">Incomplete team data</p>
+                    </div>
+                `;
+            }
+            
+            let statusBadge = '';
+            let statusClass = '';
+            if (team.currentRound === 0) {
+                statusBadge = '⏳ Waiting';
+                statusClass = 'waiting';
+            } else if (team.currentRound >= 1 && team.currentRound <= 4) {
+                statusBadge = `🎮 Round ${team.currentRound}`;
+                statusClass = 'playing';
+            } else if (team.currentRound === 5) {
+                statusBadge = '✅ Complete';
+                statusClass = 'complete';
+            }
+            
+            const statusLabels = { health: '❤️', morale: '😊', food: '🍎', shelter: '🏠', rescue: '🚁' };
+            
+            let statusBars = '';
+            Object.keys(team.status).forEach(key => {
+                const value = team.status[key];
+                statusBars += `
+                    <div class="status-item">
+                        <div class="status-label">
+                            <span style="font-size: 12px;">${statusLabels[key]} ${key.charAt(0).toUpperCase() + key.slice(1)}</span>
+                            <span style="font-size: 12px;">${value}</span>
+                        </div>
+                        <div class="status-bar" style="height: 18px;">
+                            <div class="status-bar-fill status-${key}" style="width: ${value}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            if (team.currentRound === 5) {
+                const outcome = determineOutcome(team.status);
+                const roleNames = team.roles.map(id => ROLES.find(r => r.id === id)?.name || id).join(', ');
+                const resourceNames = team.resources.map(id => RESOURCES.find(r => r.id === id)?.name || id).join(', ');
+                
+                return `
+                    <div class="team-card" style="${isWinner ? 'border: 4px solid #ffd700; box-shadow: 0 12px 30px rgba(255,215,0,0.5); padding-top: 30px;' : 'padding-top: 20px;'}">
+                        ${isWinner ? '<div style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); background: #ffd700; padding: 8px 20px; border-radius: 20px; font-size: 16px; font-weight: 700; color: #2c3e50; box-shadow: 0 4px 12px rgba(255,215,0,0.4);">🏆 WINNER 🏆</div>' : ''}
+                        
+                        <div class="team-header">
+                            <div class="team-name">🏝️ ${team.name}</div>
+                            <div class="team-status ${statusClass}">${statusBadge}</div>
+                        </div>
+                        
+                        <div style="background: ${outcome.rank <= 2 ? '#d4edda' : outcome.rank <= 4 ? '#fff3cd' : '#f8d7da'}; 
+                                    padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+                            <div style="font-size: 32px; margin-bottom: 5px;">${outcome.emoji}</div>
+                            <div style="font-size: 16px; font-weight: 700; color: #2c3e50;">
+                                ${outcome.category}
+                            </div>
+                            <div style="font-size: 13px; color: #495057; margin-top: 8px; font-weight: 600;">
+                                Final Score: ${Math.round(outcome.score)}
+                            </div>
+                        </div>
+                        
+                        <div class="team-choices">
+                            <strong>Roles:</strong> ${roleNames}<br>
+                            <strong>Resources:</strong> ${resourceNames}
+                        </div>
+                        
+                        ${statusBars}
+                        
+                        <div class="outcome-summary" style="margin-top: 15px; font-size: 12px;">
+                            ${outcome.message}
+                        </div>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="team-card" style="padding-top: 20px;">
+                        <div class="team-header">
+                            <div class="team-name">🏝️ ${team.name}</div>
+                            <div class="team-status ${statusClass}">${statusBadge}</div>
+                        </div>
+                        ${statusBars}
+                    </div>
+                `;
+            }
+        }
+        
+        // Auto-refresh dashboard every 5 seconds
+        setInterval(() => {
+            if (!document.getElementById('dashboardPage').classList.contains('hidden')) {
+                updateDashboard();
+            }
+        }, 5000);
+    </script>
+</body>
+</html>
